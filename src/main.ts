@@ -18,7 +18,7 @@ async function bootstrap() {
 
   await microservice.listen();
   console.log(
-    `Microservice listening on ${configService.get('MICROSERVICE_HOST')}:${configService.get('MICROSERVICE_PORT')}`,
+    `Microservice listening on ${configService.get('HOST')}:${configService.get('PORT')}`,
   );
 }
 bootstrap();

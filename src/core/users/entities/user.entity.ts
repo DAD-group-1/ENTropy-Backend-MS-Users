@@ -20,10 +20,8 @@ export class User {
   phone: string;
   @Column('date')
   birthday: Date;
-
   @Column()
   campus_id: number;
-
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()

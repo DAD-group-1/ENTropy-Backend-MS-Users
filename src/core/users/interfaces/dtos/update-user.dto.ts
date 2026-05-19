@@ -5,4 +5,6 @@ export class UpdateUserDto {
   phone?: string;
   birthday?: Date;
   campus_id?: number;
+  created_at?: Date;
+  updated_at?: Date;
 }
