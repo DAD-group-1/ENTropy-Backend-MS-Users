@@ -1,9 +1,10 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './interfaces/dtos/create-user.dto';
 import { UpdateUserDto } from './interfaces/dtos/update-user.dto';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class UserService {
@@ -13,7 +14,15 @@ export class UserService {
 
   async create(createData: CreateUserDto): Promise<User> {
     const user = this.userRepository.create(createData);
-    return this.userRepository.save(user);
+    try {
+      return await this.userRepository.save(user);
+    } catch (error) {
+      throw new RpcException({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Error creating user',
+        code: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 
   async findOne(id: number): Promise<User | null> {

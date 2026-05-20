@@ -27,9 +27,9 @@ export class StudentController {
 
   @MessagePattern({ cmd: 'update_student' })
   async updateStudent(
-    @Payload() payload: { id: number; updateStudentDto: UpdateStudentDto },
+    @Payload() payload: { id: number; updateData: UpdateStudentDto },
   ) {
-    return this.studentService.update(payload.id, payload.updateStudentDto);
+    return this.studentService.update(payload.id, payload.updateData);
   }
 
   @MessagePattern({ cmd: 'remove_student' })

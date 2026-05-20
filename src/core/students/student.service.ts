@@ -85,10 +85,7 @@ export class StudentService {
     if (!student) return null;
 
     // Update the user data first
-    const updatedUser = await this.userService.update(
-      student.user_id,
-      updateData,
-    );
+    const updatedUser = await this.userService.update(id, updateData);
 
     // Then update the student data
     this.studentRepository.merge(student, updateData);

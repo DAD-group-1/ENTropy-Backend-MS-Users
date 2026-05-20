@@ -6,11 +6,9 @@ import { User } from '../../users/entities/user.entity';
 export class Student {
   @PrimaryColumn()
   user_id: number;
-
   @OneToOne(() => User, (user) => user.id, { cascade: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
   @Column()
   program_id: number;
   @Column()
