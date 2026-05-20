@@ -22,12 +22,21 @@ export class InstructorService {
 
     createData.user_id = savedUser.id;
     const instructor = this.instructorRepository.create(createData);
-    const savedInstructor = await this.instructorRepository.save(instructor);
+    try {
+      const savedInstructor = await this.instructorRepository.save(instructor);
 
-    return {
-      ...savedInstructor,
-      user: savedUser,
-    };
+      return {
+        ...savedInstructor,
+        user: savedUser,
+      };
+    } catch (error) {
+      await this.userService.remove(savedUser.id);
+      throw new RpcException({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+        message: error.message || 'Failed to create instructor',
+        code: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
   }
 
   findAll(): Promise<Instructor[]> {
