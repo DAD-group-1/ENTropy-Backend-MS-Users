@@ -1,37 +1,74 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Instructor } from './entities/instructor.entity';
 import { Repository } from 'typeorm';
+import {
+  CreateInstructorDto,
+  UpdateInstructorDto,
+} from './interfaces/dtos/instructor.dto';
+import { UserService } from '../users/user.service';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class InstructorService {
   constructor(
     @InjectRepository(Instructor)
     private instructorRepository: Repository<Instructor>,
+    private readonly userService: UserService,
   ) {}
 
-  async create(createData: Partial<Instructor>): Promise<Instructor> {
+  async create(createData: CreateInstructorDto): Promise<Instructor> {
+    const savedUser = await this.userService.create({ ...createData });
+
+    createData.user_id = savedUser.id;
     const instructor = this.instructorRepository.create(createData);
-    return this.instructorRepository.save(instructor);
+    const savedInstructor = await this.instructorRepository.save(instructor);
+
+    return {
+      ...savedInstructor,
+      user: savedUser,
+    };
   }
 
   findAll(): Promise<Instructor[]> {
-    return this.instructorRepository.find();
+    return this.instructorRepository.find({
+      relations: { user: true },
+    });
   }
 
   async findOne(id: number): Promise<Instructor | null> {
-    return this.instructorRepository.findOne({ where: { id } });
+    const instructor = await this.instructorRepository.findOne({
+      where: { user_id: id },
+      relations: { user: true },
+    });
+
+    if (!instructor) {
+      throw new RpcException({
+        message: `Instructor with ID ${id} not found`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
+
+    return instructor;
   }
 
   async update(
     id: number,
-    updateData: Partial<Instructor>,
+    updateData: UpdateInstructorDto,
   ): Promise<Instructor | null> {
     const instructor = await this.findOne(id);
     if (!instructor) return null;
 
+    const updatedUser = await this.userService.update(id, updateData);
+
     this.instructorRepository.merge(instructor, updateData);
-    return this.instructorRepository.save(instructor);
+    const updatedInstructor = await this.instructorRepository.save(instructor);
+
+    if (updatedUser) {
+      updatedInstructor.user = updatedUser;
+    }
+
+    return updatedInstructor;
   }
 
   async remove(id: number): Promise<Instructor | null> {
@@ -39,6 +76,7 @@ export class InstructorService {
     if (!instructor) return null;
 
     await this.instructorRepository.remove(instructor);
+    await this.userService.remove(id);
     return instructor;
   }
 }

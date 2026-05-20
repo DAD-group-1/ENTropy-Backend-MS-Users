@@ -1,14 +1,17 @@
 import { Controller } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
-import { MessagePattern } from '@nestjs/microservices';
-import { CreateInstructorDto } from './interfaces/dtos/create-instructor.dto';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  CreateInstructorDto,
+  UpdateInstructorDto,
+} from './interfaces/dtos/instructor.dto';
 
 @Controller('instructors')
 export class InstructorController {
   constructor(private readonly instructorService: InstructorService) {}
 
   @MessagePattern({ cmd: 'create_instructor' })
-  async create(data: CreateInstructorDto) {
+  async create(@Payload() data: CreateInstructorDto) {
     return this.instructorService.create(data);
   }
 
@@ -18,20 +21,23 @@ export class InstructorController {
   }
 
   @MessagePattern({ cmd: 'find_one_instructor' })
-  findOne(id: string) {
-    return this.instructorService.findOne(Number(id));
+  findOne(@Payload() id: number) {
+    return this.instructorService.findOne(id);
   }
 
   @MessagePattern({ cmd: 'update_instructor' })
-  update(payload: { id: string; updateData: Partial<CreateInstructorDto> }) {
-    return this.instructorService.update(
-      Number(payload.id),
-      payload.updateData,
-    );
+  update(
+    @Payload()
+    payload: {
+      id: number;
+      updateData: UpdateInstructorDto;
+    },
+  ) {
+    return this.instructorService.update(payload.id, payload.updateData);
   }
 
   @MessagePattern({ cmd: 'remove_instructor' })
-  remove(id: string) {
-    return this.instructorService.remove(Number(id));
+  remove(@Payload() id: number) {
+    return this.instructorService.remove(id);
   }
 }
