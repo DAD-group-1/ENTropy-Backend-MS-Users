@@ -1,8 +1,10 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { CreateStudentDto } from './interfaces/dtos/create-student.dto';
-import { UpdateUserDto } from '../users/interfaces/dtos/update-user.dto';
 import { StudentService } from './student.service';
+import {
+  CreateStudentDto,
+  UpdateStudentDto,
+} from './interfaces/dtos/student.dto';
 
 @Controller('students')
 export class StudentController {
@@ -10,7 +12,6 @@ export class StudentController {
 
   @MessagePattern({ cmd: 'create_student' })
   async createStudent(@Payload() data: CreateStudentDto) {
-    console.log(data);
     return this.studentService.create(data);
   }
 
@@ -20,22 +21,19 @@ export class StudentController {
   }
 
   @MessagePattern({ cmd: 'find_one_student' })
-  async findOneStudent(@Payload() id: string) {
-    return this.studentService.findOne(Number(id));
+  async findOneStudent(@Payload() id: number) {
+    return this.studentService.findOne(id);
   }
 
   @MessagePattern({ cmd: 'update_student' })
   async updateStudent(
-    @Payload() payload: { id: string; updateStudentDto: UpdateUserDto },
+    @Payload() payload: { id: number; updateStudentDto: UpdateStudentDto },
   ) {
-    return this.studentService.update(
-      Number(payload.id),
-      payload.updateStudentDto,
-    );
+    return this.studentService.update(payload.id, payload.updateStudentDto);
   }
 
   @MessagePattern({ cmd: 'remove_student' })
-  async removeStudent(@Payload() id: string) {
-    return this.studentService.remove(Number(id));
+  async removeStudent(@Payload() id: number) {
+    return this.studentService.remove(id);
   }
 }

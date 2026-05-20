@@ -1,29 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateStudentDto } from './interfaces/dtos/create-student.dto';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './entities/student.entity';
-import { UpdateStudentDto } from './interfaces/dtos/update-student.dto';
+import { RpcException } from '@nestjs/microservices';
+import {
+  CreateStudentDto,
+  UpdateStudentDto,
+} from './interfaces/dtos/student.dto';
+import { UserService } from '../users/user.service';
 
 @Injectable()
 export class StudentService {
   constructor(
     @InjectRepository(Student) private studentRepository: Repository<Student>,
+    private readonly userService: UserService,
   ) {}
 
+  /**
+   * Create a new student.
+   * This method first creates a new user using the provided data,
+   * then creates a new student with the user ID of the newly created user.
+   * @param createData The data to create the student with
+   * @returns The created student
+   * @throws RpcException if there is an error creating the user or student
+   */
   async create(createData: CreateStudentDto): Promise<Student> {
-    const user = this.studentRepository.create(createData);
-    return this.studentRepository.save(user);
+    const savedUser = await this.userService.create({ ...createData });
+
+    createData.user_id = savedUser.id;
+    const student = this.studentRepository.create(createData);
+    const savedStudent = await this.studentRepository.save(student);
+
+    return {
+      ...savedStudent,
+      user: savedUser,
+    };
   }
 
+  /**
+   * Get all students.
+   * @returns An array of all students
+   * @throws RpcException if there is an error retrieving the students
+   */
   findAll(): Promise<Student[]> {
-    return this.studentRepository.find();
+    return this.studentRepository.find({
+      relations: { user: true },
+    });
   }
 
+  /**
+   * Get the student with the given ID. If the student is not found, an RpcException with a 404 status code is thrown.
+   * @param id The ID of the student to find
+   * @returns The student with the given ID, or null if not found
+   * @throws RpcException with a 404 status code if the student is not found
+   */
   async findOne(id: number): Promise<Student | null> {
-    return this.studentRepository.findOne({ where: { id } });
+    const student = await this.studentRepository.findOne({
+      where: { user_id: id },
+      relations: { user: true },
+    });
+
+    if (!student) {
+      throw new RpcException({
+        message: `Student with ID ${id} not found`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
+
+    return student;
   }
 
+  /**
+   * Update the student with the given ID using the provided update data. If the student is not found, null is returned.
+   * @param id The ID of the student to update
+   * @param updateData The data to update the student with
+   * @returns The updated student
+   * @see {@link findOne} for error handling when the student is not found
+   */
   async update(
     id: number,
     updateData: UpdateStudentDto,
@@ -31,8 +84,22 @@ export class StudentService {
     const student = await this.findOne(id);
     if (!student) return null;
 
+    // Update the user data first
+    const updatedUser = await this.userService.update(
+      student.user_id,
+      updateData,
+    );
+
+    // Then update the student data
     this.studentRepository.merge(student, updateData);
-    return this.studentRepository.save(student);
+    const updatedStudent = await this.studentRepository.save(student);
+
+    // Attach the updated user to the student before returning
+    if (updatedUser) {
+      updatedStudent.user = updatedUser;
+    }
+
+    return updatedStudent;
   }
 
   async remove(id: number): Promise<Student | null> {
@@ -40,6 +107,7 @@ export class StudentService {
     if (!student) return null;
 
     await this.studentRepository.remove(student);
+    await this.userService.remove(id); // ALWAYS remove after removing the student to maintain data integrity
     return student;
   }
 }
