@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './entities/student.entity';
@@ -8,11 +8,13 @@ import {
   UpdateStudentDto,
 } from './interfaces/dtos/student.dto';
 import { UserService } from '../users/user.service';
+import { Logger } from 'winston';
 
 @Injectable()
 export class StudentService {
   constructor(
     @InjectRepository(Student) private studentRepository: Repository<Student>,
+    @Inject(Logger) private readonly logger: Logger,
     private readonly userService: UserService,
   ) {}
 
@@ -39,6 +41,10 @@ export class StudentService {
       };
     } catch (error) {
       await this.userService.remove(savedUser.id);
+      this.logger.error(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `Failed to create student: ${error.message || 'Unknown error'}`,
+      );
       throw new RpcException({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Failed to create student',
@@ -71,6 +77,7 @@ export class StudentService {
     });
 
     if (!student) {
+      this.logger.error(`Student with ID ${id} not found`);
       throw new RpcException({
         message: `Student with ID ${id} not found`,
         code: HttpStatus.NOT_FOUND,
@@ -92,7 +99,13 @@ export class StudentService {
     updateData: UpdateStudentDto,
   ): Promise<Student | null> {
     const student = await this.findOne(id);
-    if (!student) return null;
+    if (!student) {
+      this.logger.error(`Student with ID ${id} not found for update`);
+      throw new RpcException({
+        message: `Student with ID ${id} not found for update`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
 
     // Update the user data first
     const updatedUser = await this.userService.update(id, updateData);
@@ -111,7 +124,13 @@ export class StudentService {
 
   async remove(id: number): Promise<Student | null> {
     const student = await this.findOne(id);
-    if (!student) return null;
+    if (!student) {
+      this.logger.error(`Student with ID ${id} not found for deletion`);
+      throw new RpcException({
+        message: `Student with ID ${id} not found for deletion`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
 
     await this.studentRepository.remove(student);
     await this.userService.remove(id); // ALWAYS remove after removing the student to maintain data integrity

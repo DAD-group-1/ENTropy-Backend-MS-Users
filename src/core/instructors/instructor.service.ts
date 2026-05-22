@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Instructor } from './entities/instructor.entity';
 import { Repository } from 'typeorm';
@@ -8,12 +8,14 @@ import {
 } from './interfaces/dtos/instructor.dto';
 import { UserService } from '../users/user.service';
 import { RpcException } from '@nestjs/microservices';
+import { Logger } from 'winston';
 
 @Injectable()
 export class InstructorService {
   constructor(
     @InjectRepository(Instructor)
     private instructorRepository: Repository<Instructor>,
+    @Inject(Logger) private readonly logger: Logger,
     private readonly userService: UserService,
   ) {}
 
@@ -31,6 +33,11 @@ export class InstructorService {
       };
     } catch (error) {
       await this.userService.remove(savedUser.id);
+
+      this.logger.error(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        `Failed to create instructor: ${error.message || 'Unknown error'}`,
+      );
       throw new RpcException({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Failed to create instructor',
@@ -66,7 +73,13 @@ export class InstructorService {
     updateData: UpdateInstructorDto,
   ): Promise<Instructor | null> {
     const instructor = await this.findOne(id);
-    if (!instructor) return null;
+    if (!instructor) {
+      this.logger.error(`Instructor with ID ${id} not found for update`);
+      throw new RpcException({
+        message: `Instructor with ID ${id} not found`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
 
     const updatedUser = await this.userService.update(id, updateData);
 
@@ -82,7 +95,13 @@ export class InstructorService {
 
   async remove(id: number): Promise<Instructor | null> {
     const instructor = await this.findOne(id);
-    if (!instructor) return null;
+    if (!instructor) {
+      this.logger.error(`Instructor with ID ${id} not found for deletion`);
+      throw new RpcException({
+        message: `Instructor with ID ${id} not found`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
 
     await this.instructorRepository.remove(instructor);
     await this.userService.remove(id);
