@@ -1,15 +1,16 @@
 services:
-  mysql-db:
-    image: mysql:9.7
-    container_name: entropy_users_mysql
+  postgresql-db:
+    image: postgres:18
+    container_name: entropy_users_postgresql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: secretpassword
-      MYSQL_DATABASE: entropy_users_db
+      POSTGRES_DB: entropy_users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "3307:3306"
+      - "5433:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql
 
   entropy-backend-ms-users:
     build:
@@ -17,11 +18,11 @@ services:
       dockerfile: Dockerfile
     container_name: entropy_backend_ms_users
     depends_on:
-      - mysql-db
+      - postgresql-db
     ports:
       - "3001:3001"
     volumes:
       - .:/app
 
 volumes:
-  mysql_data:
+  postgres_data:
