@@ -5,11 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Instructor } from './entities/instructor.entity';
 import { User } from '../users/entities/user.entity';
 import { UserModule } from '../users/user.module';
-import { Logger } from 'winston';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Instructor, User]), UserModule],
-  providers: [InstructorService, Logger],
+  providers: [InstructorService],
   controllers: [InstructorController],
 })
 export class InstructorModule {}

@@ -1,17 +1,17 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './interfaces/dtos/create-user.dto';
 import { UpdateUserDto } from './interfaces/dtos/update-user.dto';
 import { RpcException } from '@nestjs/microservices';
-import { Logger } from 'winston';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User) private userRepository: Repository<User>,
-    @Inject(Logger) private readonly logger: Logger,
   ) {}
 
   async create(createData: CreateUserDto): Promise<User> {
@@ -19,8 +19,9 @@ export class UserService {
     try {
       return await this.userRepository.save(user);
     } catch (error) {
+      console.log(error.message);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      this.logger.error('Error creating user', { error });
+      this.logger.error(`Error creating user: ${error.message || 'Unknown error'}`, { error });
       throw new RpcException({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Error creating user',

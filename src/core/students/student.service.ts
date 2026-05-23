@@ -8,13 +8,14 @@ import {
   UpdateStudentDto,
 } from './interfaces/dtos/student.dto';
 import { UserService } from '../users/user.service';
-import { Logger } from 'winston';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class StudentService {
+  private readonly logger = new Logger(StudentService.name);
+
   constructor(
     @InjectRepository(Student) private studentRepository: Repository<Student>,
-    @Inject(Logger) private readonly logger: Logger,
     private readonly userService: UserService,
   ) {}
 

@@ -1,21 +1,18 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Instructor } from './entities/instructor.entity';
-import { Repository } from 'typeorm';
-import {
-  CreateInstructorDto,
-  UpdateInstructorDto,
-} from './interfaces/dtos/instructor.dto';
-import { UserService } from '../users/user.service';
-import { RpcException } from '@nestjs/microservices';
-import { Logger } from 'winston';
+import {HttpStatus, Injectable, Logger} from '@nestjs/common';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Instructor} from './entities/instructor.entity';
+import {Repository} from 'typeorm';
+import {CreateInstructorDto, UpdateInstructorDto,} from './interfaces/dtos/instructor.dto';
+import {UserService} from '../users/user.service';
+import {RpcException} from '@nestjs/microservices';
 
 @Injectable()
 export class InstructorService {
+  private readonly logger = new Logger(InstructorService.name);
+
   constructor(
     @InjectRepository(Instructor)
     private instructorRepository: Repository<Instructor>,
-    @Inject(Logger) private readonly logger: Logger,
     private readonly userService: UserService,
   ) {}
 
