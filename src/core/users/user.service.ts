@@ -2,8 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { CreateUserDto } from './interfaces/dtos/create-user.dto';
-import { UpdateUserDto } from './interfaces/dtos/update-user.dto';
+import { CreateUserDto, UpdateUserDto } from '@dad-group-1/backend-common';
 import { RpcException } from '@nestjs/microservices';
 
 @Injectable()

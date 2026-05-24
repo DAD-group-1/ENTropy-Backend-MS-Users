@@ -4,7 +4,7 @@ import { StudentService } from './student.service';
 import {
   CreateStudentDto,
   UpdateStudentDto,
-} from './interfaces/dtos/student.dto';
+} from '@dad-group-1/backend-common';
 
 @Controller('students')
 export class StudentController {

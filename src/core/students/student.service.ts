@@ -1,14 +1,14 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './entities/student.entity';
 import { RpcException } from '@nestjs/microservices';
-import {
-  CreateStudentDto,
-  UpdateStudentDto,
-} from './interfaces/dtos/student.dto';
 import { UserService } from '../users/user.service';
 import { Logger } from '@nestjs/common';
+import {
+    CreateStudentDto,
+    UpdateStudentDto
+} from "@dad-group-1/backend-common";
 
 @Injectable()
 export class StudentService {
