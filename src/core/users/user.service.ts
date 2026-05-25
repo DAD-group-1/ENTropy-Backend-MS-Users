@@ -30,7 +30,6 @@ export class UserService {
         { error },
       );
       throw new RpcException({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Error creating user',
         code: HttpStatus.BAD_REQUEST,
       });
@@ -39,6 +38,24 @@ export class UserService {
 
   async findOne(id: number): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
+  }
+
+  async findOneWith(part: Partial<User>): Promise<User | null> {
+    return this.userRepository.findOne({ where: part });
+  }
+
+  async assertDoesntExist(part: Partial<User>): Promise<void> {
+    const user = await this.findOneWith(part);
+    const formattedPart = Object.getOwnPropertyNames(part)
+      .map((key) => `${key}: ${part[key as keyof User]}`)
+      .join(', ');
+    if(user) {
+      this.logger.error(`User with ${formattedPart} already exists`);
+      throw new RpcException({
+        message: `User with ${formattedPart} already exists`,
+        code: HttpStatus.BAD_REQUEST,
+      });
+    }
   }
 
   async update(id: number, updateData: UpdateUserDto): Promise<User | null> {

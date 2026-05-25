@@ -20,6 +20,8 @@ export class InstructorService {
   ) {}
 
   async create(createData: CreateInstructorDto): Promise<Instructor> {
+    await this.userService.assertDoesntExist({email: createData.email})
+
     const savedUser = await this.userService.create({ ...createData });
 
     createData.user_id = savedUser.id;
@@ -35,11 +37,9 @@ export class InstructorService {
       await this.userService.remove(savedUser.id);
 
       this.logger.error(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `Failed to create instructor: ${error.message || 'Unknown error'}`,
       );
       throw new RpcException({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Failed to create instructor',
         code: HttpStatus.INTERNAL_SERVER_ERROR,
       });
@@ -54,7 +54,7 @@ export class InstructorService {
 
   async findOne(id: number): Promise<Instructor | null> {
     const instructor = await this.instructorRepository.findOne({
-      where: { user_id: id },
+      where: { user: { id } },
       relations: { user: true },
     });
 

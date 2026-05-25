@@ -4,6 +4,9 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import winston from 'winston';
 import { WinstonModule } from 'nest-winston';
+import * as dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables from .env
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -26,24 +29,28 @@ async function bootstrap() {
         //
         // - Write all logs to the console as well
         //
-        new winston.transports.Console({ format: winston.format.cli() }),
+        ...(process.env.ENVIRONMENT == 'DEV' ? [new winston.transports.Console({ format: winston.format.cli() })] : []),
       ],
     }),
   });
   const configService = app.get(ConfigService);
 
-  const microservice =
-    await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
-      transport: Transport.TCP,
-      options: {
-        host: configService.get<string>('HOST', '0.0.0.0'),
-        port: configService.get<number>('PORT', 3001),
-      },
-    });
+  const microserviceHost = configService.get<string>('HOST', '0.0.0.0');
+  const microservicePort = configService.get<number>('PORT', 3001);
 
-  await microservice.listen();
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.TCP,
+    options: {
+      host: microserviceHost,
+      port: microservicePort,
+    },
+  });
+
+  await app.startAllMicroservices();
+  await app.init(); // Initialize the app without starting the HTTP server
+
   console.info(
-    `User microservice is listening on ${configService.get('HOST')}:${configService.get('PORT')}`,
+    `User microservice is listening on ${microserviceHost}:${microservicePort}`,
   );
 }
 bootstrap();

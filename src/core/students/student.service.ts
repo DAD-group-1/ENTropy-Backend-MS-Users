@@ -28,6 +28,8 @@ export class StudentService {
    * @throws RpcException if there is an error creating the user or student
    */
   async create(createData: CreateStudentDto): Promise<Student> {
+    await this.userService.assertDoesntExist({email: createData.email})
+
     const savedUser = await this.userService.create({ ...createData });
 
     createData.user_id = savedUser.id;
@@ -43,11 +45,9 @@ export class StudentService {
     } catch (error) {
       await this.userService.remove(savedUser.id);
       this.logger.error(
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `Failed to create student: ${error.message || 'Unknown error'}`,
       );
       throw new RpcException({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Failed to create student',
         code: HttpStatus.INTERNAL_SERVER_ERROR,
       });
@@ -73,7 +73,7 @@ export class StudentService {
    */
   async findOne(id: number): Promise<Student | null> {
     const student = await this.studentRepository.findOne({
-      where: { user_id: id },
+      where: { user: { id } },
       relations: { user: true },
     });
 
