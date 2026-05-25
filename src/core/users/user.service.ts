@@ -19,10 +19,8 @@ export class UserService {
       return await this.userRepository.save(user);
     } catch (error) {
       console.log(error.message);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       this.logger.error(`Error creating user: ${error.message || 'Unknown error'}`, { error });
       throw new RpcException({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
         message: error.message || 'Error creating user',
         code: HttpStatus.BAD_REQUEST,
       });
