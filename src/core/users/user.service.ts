@@ -33,6 +33,24 @@ export class UserService {
     return this.userRepository.findOne({ where: { id } });
   }
 
+  async findOneWith(part: Partial<User>): Promise<User | null> {
+    return this.userRepository.findOne({ where: part });
+  }
+
+  async assertDoesntExist(part: Partial<User>): Promise<void> {
+    const user = await this.findOneWith(part);
+    const formattedPart = Object.getOwnPropertyNames(part)
+      .map((key) => `${key}: ${part[key as keyof User]}`)
+      .join(', ');
+    if(user) {
+      this.logger.error(`User with ${formattedPart} already exists`);
+      throw new RpcException({
+        message: `User with ${formattedPart} already exists`,
+        code: HttpStatus.BAD_REQUEST,
+      });
+    }
+  }
+
   async update(id: number, updateData: UpdateUserDto): Promise<User | null> {
     const user = await this.findOne(id);
     if (!user) {
