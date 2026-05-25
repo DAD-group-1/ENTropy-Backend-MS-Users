@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto } from '@dad-group-1/backend-common';
 import { RpcException } from '@nestjs/microservices';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UserService {
@@ -14,12 +15,18 @@ export class UserService {
   ) {}
 
   async create(createData: CreateUserDto): Promise<User> {
-    const user = this.userRepository.create(createData);
     try {
+      if (createData.password) {
+        createData.password = await bcrypt.hash(createData.password, 10);
+      }
+
+      const user = this.userRepository.create(createData);
       return await this.userRepository.save(user);
     } catch (error) {
-      console.log(error.message);
-      this.logger.error(`Error creating user: ${error.message || 'Unknown error'}`, { error });
+      this.logger.error(
+        `Error creating user: ${error.message || 'Unknown error'}`,
+        { error },
+      );
       throw new RpcException({
         message: error.message || 'Error creating user',
         code: HttpStatus.BAD_REQUEST,
@@ -40,7 +47,7 @@ export class UserService {
     const formattedPart = Object.getOwnPropertyNames(part)
       .map((key) => `${key}: ${part[key as keyof User]}`)
       .join(', ');
-    if(user) {
+    if (user) {
       this.logger.error(`User with ${formattedPart} already exists`);
       throw new RpcException({
         message: `User with ${formattedPart} already exists`,
