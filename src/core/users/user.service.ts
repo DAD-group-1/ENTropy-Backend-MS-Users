@@ -23,8 +23,6 @@ export class UserService {
       const user = this.userRepository.create(createData);
       return await this.userRepository.save(user);
     } catch (error) {
-      console.log(error.message);
-
       this.logger.error(
         `Error creating user: ${error.message || 'Unknown error'}`,
         { error },
@@ -49,7 +47,7 @@ export class UserService {
     const formattedPart = Object.getOwnPropertyNames(part)
       .map((key) => `${key}: ${part[key as keyof User]}`)
       .join(', ');
-    if(user) {
+    if (user) {
       this.logger.error(`User with ${formattedPart} already exists`);
       throw new RpcException({
         message: `User with ${formattedPart} already exists`,

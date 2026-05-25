@@ -20,7 +20,6 @@ export class AuthenticationService {
 
   async validateUser(email: string, pass: string): Promise<Partial<User>> {
     const user = await this.usersRepository.findOneBy({ email: email });
-    console.log(user);
 
     if (user === null || user === undefined) {
       throw new RpcException({
