@@ -1,0 +1,24 @@
+import { Module } from '@nestjs/common';
+import { AuthenticationController } from './authentication.controller';
+import { AuthenticationService } from './authentication.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RefreshToken } from './entities/refresh_token.entity';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { User } from '../users/entities/user.entity';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([User, RefreshToken]),
+    JwtModule.registerAsync({
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET'),
+        signOptions: { expiresIn: '1h' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthenticationController],
+  providers: [AuthenticationService],
+})
+export class AuthenticationModule {}

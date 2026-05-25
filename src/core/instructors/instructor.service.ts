@@ -1,10 +1,13 @@
-import {HttpStatus, Injectable, Logger} from '@nestjs/common';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Instructor} from './entities/instructor.entity';
-import {Repository} from 'typeorm';
-import {CreateInstructorDto, UpdateInstructorDto,} from '@dad-group-1/backend-common';
-import {UserService} from '../users/user.service';
-import {RpcException} from '@nestjs/microservices';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Instructor } from './entities/instructor.entity';
+import { Repository } from 'typeorm';
+import {
+  CreateInstructorDto,
+  UpdateInstructorDto,
+} from '@dad-group-1/backend-common';
+import { UserService } from '../users/user.service';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class InstructorService {
