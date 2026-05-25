@@ -30,7 +30,6 @@ export class StudentService {
   async create(createData: CreateStudentDto): Promise<Student> {
     const savedUser = await this.userService.create({ ...createData });
 
-    createData.user_id = savedUser.id;
     const student = this.studentRepository.create(createData);
 
     try {
@@ -73,7 +72,7 @@ export class StudentService {
    */
   async findOne(id: number): Promise<Student | null> {
     const student = await this.studentRepository.findOne({
-      where: { user_id: id },
+      where: { user: { id } },
       relations: { user: true },
     });
 

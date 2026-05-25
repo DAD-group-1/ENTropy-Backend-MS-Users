@@ -19,7 +19,6 @@ export class InstructorService {
   async create(createData: CreateInstructorDto): Promise<Instructor> {
     const savedUser = await this.userService.create({ ...createData });
 
-    createData.user_id = savedUser.id;
     const instructor = this.instructorRepository.create(createData);
     try {
       const savedInstructor = await this.instructorRepository.save(instructor);
@@ -51,7 +50,7 @@ export class InstructorService {
 
   async findOne(id: number): Promise<Instructor | null> {
     const instructor = await this.instructorRepository.findOne({
-      where: { user_id: id },
+      where: { user: { id } },
       relations: { user: true },
     });
 
