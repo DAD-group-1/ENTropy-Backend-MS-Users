@@ -12,7 +12,7 @@ import { User } from '../users/entities/user.entity';
     TypeOrmModule.forFeature([User, RefreshToken]),
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_SECRET'),
+        secret: config.getOrThrow('JWT_SECRET'),
         signOptions: { expiresIn: '1h' },
       }),
       inject: [ConfigService],

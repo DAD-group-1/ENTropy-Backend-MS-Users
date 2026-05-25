@@ -1,4 +1,4 @@
-import { Controller, NotFoundException } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthenticationService } from './authentication.service';
 import { LoginDto, LoginResponseDto } from '@dad-group-1/backend-common';
@@ -10,7 +10,6 @@ export class AuthenticationController {
   @MessagePattern({ cmd: 'login' })
   async login(@Payload() data: LoginDto): Promise<LoginResponseDto> {
     const user = await this.authService.validateUser(data.email, data.password);
-    if (!user) throw new NotFoundException();
     return this.authService.login(user);
   }
 }

@@ -1,15 +1,11 @@
-import {
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
+import { LoginResponseDto } from '@dad-group-1/backend-common';
 
 @Injectable()
 export class AuthenticationService {
@@ -21,16 +17,13 @@ export class AuthenticationService {
   async validateUser(email: string, pass: string): Promise<Partial<User>> {
     const user = await this.usersRepository.findOneBy({ email: email });
 
-    if (user === null || user === undefined) {
+    if (
+      user === null ||
+      user === undefined ||
+      !(await bcrypt.compare(pass, user.password))
+    ) {
       throw new RpcException({
         message: 'Invalid credentials',
-        code: HttpStatus.UNAUTHORIZED,
-      });
-    }
-
-    if (!(await bcrypt.compare(pass, user.password))) {
-      throw new RpcException({
-        message: 'Wrong password',
         code: HttpStatus.UNAUTHORIZED,
       });
     }
@@ -39,7 +32,7 @@ export class AuthenticationService {
     return result;
   }
 
-  login(user: Partial<User>): { access_token: string } {
+  login(user: Partial<User>): LoginResponseDto {
     const payload = { sub: user.id, email: user.email };
     return { access_token: this.jwtService.sign(payload) };
   }
