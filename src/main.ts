@@ -3,9 +3,6 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { createWinstonLogger } from '@dad-group-1/backend-common';
-import * as dotenv from 'dotenv';
-
-dotenv.config(); // Load environment variables from .env
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
