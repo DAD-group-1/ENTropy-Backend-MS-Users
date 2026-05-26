@@ -21,7 +21,7 @@ export class RefreshToken {
   @Column()
   expires_at: Date;
   @Column({ nullable: true })
-  revoked_at: Date | null;
+  revoked_at?: Date;
 
   @CreateDateColumn()
   created_at: Date;
