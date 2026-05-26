@@ -1,6 +1,6 @@
-import {Entity, OneToOne, JoinColumn} from 'typeorm';
-import {User} from "../../users/entities/user.entity";
-import {InternalStudent} from "@dad-group-1/backend-common";
+import { Entity, OneToOne, JoinColumn } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { InternalStudent } from '@dad-group-1/backend-common';
 
 @Entity()
 export class Student extends InternalStudent {

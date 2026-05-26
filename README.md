@@ -1,6 +1,6 @@
 # ENTropy-Backend-MS-Users
 
-Service managing users for the ENTropy architecture. 
+Service managing users for the ENTropy architecture.
 
 ## Setup & Dependencies
 
@@ -14,10 +14,10 @@ To install dependencies properly, you must authenticate with GitHub:
    @dad-group-1:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
    ```
-   *(Make sure `.npmrc` is added to your `.gitignore` to prevent leaking your token).*
+   _(Make sure `.npmrc` is added to your `.gitignore` to prevent leaking your token)._
 3. **Install:** Run `npm install` as usual.
 
-*(For detailed instructions on the common package, refer to the `ENTropy-Backend-Common/README.md` file).*
+_(For detailed instructions on the common package, refer to the `ENTropy-Backend-Common/README.md` file)._
 
 ## Running the application
 

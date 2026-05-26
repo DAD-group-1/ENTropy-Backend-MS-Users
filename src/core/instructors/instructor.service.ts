@@ -20,7 +20,7 @@ export class InstructorService {
   ) {}
 
   async create(createData: CreateInstructorDto): Promise<Instructor> {
-    await this.userService.assertDoesntExist({email: createData.email})
+    await this.userService.assertDoesntExist({ email: createData.email });
 
     const savedUser = await this.userService.create({ ...createData });
 

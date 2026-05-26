@@ -6,9 +6,9 @@ import { RpcException } from '@nestjs/microservices';
 import { UserService } from '../users/user.service';
 import { Logger } from '@nestjs/common';
 import {
-    CreateStudentDto,
-    UpdateStudentDto
-} from "@dad-group-1/backend-common";
+  CreateStudentDto,
+  UpdateStudentDto,
+} from '@dad-group-1/backend-common';
 
 @Injectable()
 export class StudentService {
@@ -28,7 +28,7 @@ export class StudentService {
    * @throws RpcException if there is an error creating the user or student
    */
   async create(createData: CreateStudentDto): Promise<Student> {
-    await this.userService.assertDoesntExist({email: createData.email})
+    await this.userService.assertDoesntExist({ email: createData.email });
 
     const savedUser = await this.userService.create({ ...createData });
 

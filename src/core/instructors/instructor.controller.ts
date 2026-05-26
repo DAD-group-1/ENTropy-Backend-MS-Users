@@ -1,7 +1,10 @@
-import {Controller} from '@nestjs/common';
-import {InstructorService} from './instructor.service';
-import {MessagePattern, Payload} from '@nestjs/microservices';
-import {CreateInstructorDto, UpdateInstructorDto,} from '@dad-group-1/backend-common';
+import { Controller } from '@nestjs/common';
+import { InstructorService } from './instructor.service';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  CreateInstructorDto,
+  UpdateInstructorDto,
+} from '@dad-group-1/backend-common';
 
 @Controller('instructors')
 export class InstructorController {
