@@ -1,15 +1,26 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthenticationService } from './authentication.service';
-import { LoginDto, LoginResponseDto } from '@dad-group-1/backend-common';
+import {
+  LoginDto,
+  RefreshTokenDto,
+  TokenResponseDto,
+} from '@dad-group-1/backend-common';
 
 @Controller('authentication')
 export class AuthenticationController {
   constructor(private authService: AuthenticationService) {}
 
   @MessagePattern({ cmd: 'login' })
-  async login(@Payload() data: LoginDto): Promise<LoginResponseDto> {
+  async login(@Payload() data: LoginDto): Promise<TokenResponseDto> {
     const user = await this.authService.validateUser(data.email, data.password);
     return this.authService.login(user);
+  }
+
+  @MessagePattern({ cmd: 'refresh_token' })
+  async refreshToken(
+    @Payload() refresh_token: RefreshTokenDto,
+  ): Promise<TokenResponseDto> {
+    return await this.authService.refreshTokens(refresh_token);
   }
 }
