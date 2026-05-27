@@ -20,8 +20,8 @@ export class RefreshToken {
   token: string;
   @Column()
   expires_at: Date;
-  @Column({ nullable: true })
-  revoked_at?: Date;
+  @Column('timestamp with time zone', { nullable: true })
+  revoked_at: Date | null;
 
   @CreateDateColumn()
   created_at: Date;
