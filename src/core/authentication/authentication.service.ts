@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { IsNull, MoreThan, Repository } from 'typeorm';
+import { DataSource, IsNull, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
@@ -18,12 +18,22 @@ export class AuthenticationService {
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private dataSource: DataSource,
   ) {}
 
   async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
-    const payload = this.jwtService.verify<{ sub: string; email: string }>(
-      token.refresh_token,
-    );
+    let payload: { sub: string; email: string };
+
+    try {
+      payload = this.jwtService.verify<{ sub: string; email: string }>(
+        token.refresh_token,
+      );
+    } catch {
+      throw new RpcException({
+        message: 'Invalid or expired refresh token',
+        code: HttpStatus.UNAUTHORIZED,
+      });
+    }
 
     if (isNaN(Number(payload.sub))) {
       throw new RpcException({
@@ -32,62 +42,65 @@ export class AuthenticationService {
       });
     }
 
-    const activeToken = await this.refreshTokenRepository.findOne({
-      where: [
-        {
-          token: token.refresh_token,
-          user_id: Number(payload.sub),
-          revoked_at: IsNull(),
-          expires_at: MoreThan(new Date()),
-        },
-        {
-          token: token.refresh_token,
-          user_id: Number(payload.sub),
-          revoked_at: MoreThan(new Date()),
-          expires_at: MoreThan(new Date()),
-        },
-      ],
-    });
-
-    if (!activeToken) {
-      throw new RpcException({
-        message: 'Refresh token revoked or missing',
-        code: HttpStatus.UNAUTHORIZED,
+    // Start the atomic transaction
+    return await this.dataSource.transaction(async (manager) => {
+      const activeToken = await manager.findOne(RefreshToken, {
+        where: [
+          {
+            token: token.refresh_token,
+            user_id: Number(payload.sub),
+            revoked_at: IsNull(),
+            expires_at: MoreThan(new Date()),
+          },
+          {
+            token: token.refresh_token,
+            user_id: Number(payload.sub),
+            revoked_at: MoreThan(new Date()),
+            expires_at: MoreThan(new Date()),
+          },
+        ],
+        lock: { mode: 'pessimistic_write' }, // Prevents concurrent 'refresh' attacks
       });
-    }
 
-    await this.refreshTokenRepository.remove(activeToken);
+      if (!activeToken) {
+        throw new RpcException({
+          message: 'Refresh token revoked or missing',
+          code: HttpStatus.UNAUTHORIZED,
+        });
+      }
 
-    const accessToken = this.jwtService.sign({
-      sub: payload.sub,
-      email: payload.email,
-    });
-    const refreshToken = this.jwtService.sign(
-      { sub: payload.sub, email: payload.email },
-      {
-        expiresIn: this.configService.getOrThrow(
+      await manager.remove(activeToken);
+
+      const accessToken = this.jwtService.sign({
+        sub: payload.sub,
+        email: payload.email,
+      });
+      const refreshToken = this.jwtService.sign(
+        { sub: payload.sub, email: payload.email },
+        {
+          expiresIn: this.configService.getOrThrow(
+            'JWT_REFRESH_TOKEN_EXPIRES_IN',
+          ),
+        },
+      );
+
+      const expiresInMs = ms(
+        this.configService.getOrThrow<string>(
           'JWT_REFRESH_TOKEN_EXPIRES_IN',
-        ),
-      },
-    );
+        ) as ms.StringValue,
+      );
+      const expiresAt = new Date(Date.now() + expiresInMs);
 
-    const expiresInMs = ms(
-      this.configService.getOrThrow<string>(
-        'JWT_REFRESH_TOKEN_EXPIRES_IN',
-      ) as ms.StringValue,
-    );
+      const newTokenEntity = manager.create(RefreshToken, {
+        user_id: Number(payload.sub),
+        token: refreshToken,
+        expires_at: expiresAt,
+      });
 
-    const expiresAt = new Date(Date.now() + expiresInMs);
+      await manager.save(newTokenEntity);
 
-    const newTokenEntity = this.refreshTokenRepository.create({
-      user_id: Number(payload.sub),
-      token: refreshToken,
-      expires_at: expiresAt,
+      return { access_token: accessToken, refresh_token: refreshToken };
     });
-
-    await this.refreshTokenRepository.save(newTokenEntity);
-
-    return { access_token: accessToken, refresh_token: refreshToken };
   }
 
   async validateUser(email: string, pass: string): Promise<Partial<User>> {
