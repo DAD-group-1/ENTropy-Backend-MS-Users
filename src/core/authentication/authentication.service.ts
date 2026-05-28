@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { MoreThan, Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
@@ -7,6 +7,8 @@ import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { RefreshToken } from './entities/refresh_token.entity';
 import { RefreshTokenDto, TokenResponseDto } from '@dad-group-1/backend-common';
+import { ConfigService } from '@nestjs/config';
+import ms from 'ms';
 
 @Injectable()
 export class AuthenticationService {
@@ -15,6 +17,7 @@ export class AuthenticationService {
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
@@ -29,10 +32,21 @@ export class AuthenticationService {
       });
     }
 
-    const activeToken = await this.refreshTokenRepository.findOneBy({
-      token: token.refresh_token,
-      user_id: Number(payload.sub),
-      revoked_at: MoreThan(new Date()),
+    const activeToken = await this.refreshTokenRepository.findOne({
+      where: [
+        {
+          token: token.refresh_token,
+          user_id: Number(payload.sub),
+          revoked_at: IsNull(),
+          expires_at: MoreThan(new Date()),
+        },
+        {
+          token: token.refresh_token,
+          user_id: Number(payload.sub),
+          revoked_at: MoreThan(new Date()),
+          expires_at: MoreThan(new Date()),
+        },
+      ],
     });
 
     if (!activeToken) {
@@ -50,11 +64,20 @@ export class AuthenticationService {
     });
     const refreshToken = this.jwtService.sign(
       { sub: payload.sub, email: payload.email },
-      { expiresIn: '7d' },
+      {
+        expiresIn: this.configService.getOrThrow(
+          'JWT_REFRESH_TOKEN_EXPIRES_IN',
+        ),
+      },
     );
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresInMs = ms(
+      this.configService.getOrThrow<string>(
+        'JWT_REFRESH_TOKEN_EXPIRES_IN',
+      ) as ms.StringValue,
+    );
+
+    const expiresAt = new Date(Date.now() + expiresInMs);
 
     const newTokenEntity = this.refreshTokenRepository.create({
       user_id: Number(payload.sub),
@@ -88,10 +111,17 @@ export class AuthenticationService {
   async login(user: Partial<User>): Promise<TokenResponseDto> {
     const payload = { sub: user.id, email: user.email };
     const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN'),
+    });
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresInMs = ms(
+      this.configService.getOrThrow<string>(
+        'JWT_REFRESH_TOKEN_EXPIRES_IN',
+      ) as ms.StringValue,
+    );
+
+    const expiresAt = new Date(Date.now() + expiresInMs);
 
     try {
       const refreshTokenEntity = this.refreshTokenRepository.create({
