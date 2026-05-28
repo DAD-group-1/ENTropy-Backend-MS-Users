@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { IsNull, Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
@@ -32,7 +32,7 @@ export class AuthenticationService {
     const activeToken = await this.refreshTokenRepository.findOneBy({
       token: token.refresh_token,
       user_id: Number(payload.sub),
-      revoked_at: IsNull(),
+      revoked_at: MoreThan(new Date()),
     });
 
     if (!activeToken) {
