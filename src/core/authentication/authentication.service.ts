@@ -1,18 +1,107 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, IsNull, MoreThan, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
-import { LoginResponseDto } from '@dad-group-1/backend-common';
+import { RefreshToken } from './entities/refresh_token.entity';
+import { RefreshTokenDto, TokenResponseDto } from '@dad-group-1/backend-common';
+import { ConfigService } from '@nestjs/config';
+import ms from 'ms';
 
 @Injectable()
 export class AuthenticationService {
   constructor(
     @InjectRepository(User) private usersRepository: Repository<User>,
+    @InjectRepository(RefreshToken)
+    private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
+    private configService: ConfigService,
+    private dataSource: DataSource,
   ) {}
+
+  async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
+    let payload: { sub: string; email: string };
+
+    try {
+      payload = this.jwtService.verify<{ sub: string; email: string }>(
+        token.refresh_token,
+      );
+    } catch {
+      throw new RpcException({
+        message: 'Invalid or expired refresh token',
+        code: HttpStatus.UNAUTHORIZED,
+      });
+    }
+
+    if (isNaN(Number(payload.sub))) {
+      throw new RpcException({
+        message: 'Invalid token payload',
+        code: HttpStatus.BAD_REQUEST,
+      });
+    }
+
+    // Start the atomic transaction
+    return await this.dataSource.transaction(async (manager) => {
+      const activeToken = await manager.findOne(RefreshToken, {
+        where: [
+          {
+            token: token.refresh_token,
+            user_id: Number(payload.sub),
+            revoked_at: IsNull(),
+            expires_at: MoreThan(new Date()),
+          },
+          {
+            token: token.refresh_token,
+            user_id: Number(payload.sub),
+            revoked_at: MoreThan(new Date()),
+            expires_at: MoreThan(new Date()),
+          },
+        ],
+        lock: { mode: 'pessimistic_write' }, // Prevents concurrent 'refresh' attacks
+      });
+
+      if (!activeToken) {
+        throw new RpcException({
+          message: 'Refresh token revoked or missing',
+          code: HttpStatus.UNAUTHORIZED,
+        });
+      }
+
+      await manager.remove(activeToken);
+
+      const accessToken = this.jwtService.sign({
+        sub: payload.sub,
+        email: payload.email,
+      });
+      const refreshToken = this.jwtService.sign(
+        { sub: payload.sub, email: payload.email },
+        {
+          expiresIn: this.configService.getOrThrow(
+            'JWT_REFRESH_TOKEN_EXPIRES_IN',
+          ),
+        },
+      );
+
+      const expiresInMs = ms(
+        this.configService.getOrThrow<string>(
+          'JWT_REFRESH_TOKEN_EXPIRES_IN',
+        ) as ms.StringValue,
+      );
+      const expiresAt = new Date(Date.now() + expiresInMs);
+
+      const newTokenEntity = manager.create(RefreshToken, {
+        user_id: Number(payload.sub),
+        token: refreshToken,
+        expires_at: expiresAt,
+      });
+
+      await manager.save(newTokenEntity);
+
+      return { access_token: accessToken, refresh_token: refreshToken };
+    });
+  }
 
   async validateUser(email: string, pass: string): Promise<Partial<User>> {
     const user = await this.usersRepository.findOneBy({ email: email });
@@ -32,20 +121,36 @@ export class AuthenticationService {
     return result;
   }
 
-  login(user: Partial<User>): LoginResponseDto {
+  async login(user: Partial<User>): Promise<TokenResponseDto> {
     const payload = { sub: user.id, email: user.email };
-    return { access_token: this.jwtService.sign(payload) };
-  }
-
-  async register(email: string, password: string): Promise<User> {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = this.usersRepository.create({
-      email: email,
-      password: hashedPassword,
-      is_active: true,
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN'),
     });
 
-    return this.usersRepository.save(newUser);
+    const expiresInMs = ms(
+      this.configService.getOrThrow<string>(
+        'JWT_REFRESH_TOKEN_EXPIRES_IN',
+      ) as ms.StringValue,
+    );
+
+    const expiresAt = new Date(Date.now() + expiresInMs);
+
+    try {
+      const refreshTokenEntity = this.refreshTokenRepository.create({
+        user_id: user.id,
+        token: refreshToken,
+        expires_at: expiresAt,
+      });
+
+      await this.refreshTokenRepository.save(refreshTokenEntity);
+    } catch (error) {
+      throw new RpcException({
+        message: error.message || 'Failed to create refresh token',
+        code: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
+
+    return { access_token: accessToken, refresh_token: refreshToken };
   }
 }
