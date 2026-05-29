@@ -3,14 +3,54 @@ services:
     image: postgres:18
     container_name: entropy_users_postgresql
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_DB: entropy_users_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+      REPLICATION_USER: replication_user
+      REPLICATION_PASSWORD: replication_password
+      PUBLISHER_DB: entropy_users_db
+      PUBLICATION_NAME: ms_users_publication
     ports:
       - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./database/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./database/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./database/00-init-replication-user.sh:/docker-entrypoint-initdb.d/00-init-replication-user.sh
+      - ./database/01-init-publication.sh:/docker-entrypoint-initdb.d/01-init-publication.sh
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf
+
+  postgresql-replica:
+    image: postgres:18
+    container_name: entropy_users_replica
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_DB: entropy_replica_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # passed through so the shell script can read them
+      PUBLISHER_HOST: host.docker.internal
+      PUBLISHER_PORT: 5433
+      PUBLISHER_DB: entropy_users_db
+      PUBLISHER_USER: postgres
+      PUBLISHER_PASSWORD: postgres
+      PUBLISHER_MAIN_TABLE: users
+      REPLICATION_USER: replication_user
+      REPLICATION_PASSWORD: replication_password
+      PUBLICATION_NAME: ms_users_publication
+      SUBSCRIPTION_NAME: ms_users_subscription
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - '5444:5432'
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql
+      - ./database/replica/02-init-subscription.sh:/docker-entrypoint-initdb.d/02-init-subscription.sh
 
   entropy-backend-ms-users:
     build:
@@ -26,3 +66,5 @@ services:
 
 volumes:
   postgres_data:
+  postgres_replica_data:
+
