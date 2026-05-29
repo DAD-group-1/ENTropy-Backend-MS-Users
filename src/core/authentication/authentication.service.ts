@@ -6,7 +6,7 @@ import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { RefreshToken } from './entities/refresh_token.entity';
-import { RefreshTokenDto, TokenResponseDto } from '@dad-group-1/backend-common';
+import { LogoutDto, LogoutResponseDto, RefreshTokenDto, TokenResponseDto, } from '@dad-group-1/backend-common';
 import { ConfigService } from '@nestjs/config';
 import ms from 'ms';
 
@@ -152,5 +152,28 @@ export class AuthenticationService {
     }
 
     return { access_token: accessToken, refresh_token: refreshToken };
+  }
+
+  async logout(refreshToken: LogoutDto): Promise<LogoutResponseDto> {
+    try {
+      const refresh_token = await this.refreshTokenRepository.findOneBy({
+        token: refreshToken.refresh_token,
+      });
+
+      if (!refresh_token) {
+        throw new RpcException({
+          message: 'Refresh token expired or not found',
+          code: HttpStatus.UNAUTHORIZED,
+        });
+      }
+
+      await this.refreshTokenRepository.remove(refresh_token);
+    } catch (error) {
+      throw new RpcException({
+        message: error.message || 'Failed to delete refresh token',
+        code: error.code || HttpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
+    return {};
   }
 }

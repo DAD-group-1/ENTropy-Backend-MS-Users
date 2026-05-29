@@ -3,6 +3,8 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthenticationService } from './authentication.service';
 import {
   LoginDto,
+  LogoutDto,
+  LogoutResponseDto,
   RefreshTokenDto,
   TokenResponseDto,
 } from '@dad-group-1/backend-common';
@@ -19,8 +21,13 @@ export class AuthenticationController {
 
   @MessagePattern({ cmd: 'refresh_token' })
   async refreshToken(
-    @Payload() refresh_token: RefreshTokenDto,
+    @Payload() refreshToken: RefreshTokenDto,
   ): Promise<TokenResponseDto> {
-    return await this.authService.refreshTokens(refresh_token);
+    return await this.authService.refreshTokens(refreshToken);
+  }
+
+  @MessagePattern({ cmd: 'logout' })
+  async logout(@Payload() refreshToken: LogoutDto): Promise<LogoutResponseDto> {
+    return await this.authService.logout(refreshToken);
   }
 }
