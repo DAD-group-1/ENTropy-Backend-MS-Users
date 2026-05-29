@@ -13,7 +13,9 @@ import { User } from '../users/entities/user.entity';
     JwtModule.registerAsync({
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow('JWT_SECRET'),
-        signOptions: { expiresIn: config.getOrThrow('JWT_EXPIRES_IN') },
+        signOptions: {
+          expiresIn: config.getOrThrow('JWT_ACCESS_TOKEN_EXPIRES_IN'),
+        },
       }),
       inject: [ConfigService],
     }),
