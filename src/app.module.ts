@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { StudentModule } from './core/students/student.module';
 import { InstructorModule } from './core/instructors/instructor.module';
 import { AuthenticationModule } from './core/authentication/authentication.module';
+import { AuthorizationModule } from './core/authorization/authorization.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthenticationModule } from './core/authentication/authentication.modul
     StudentModule,
     InstructorModule,
     AuthenticationModule,
+    AuthorizationModule,
   ],
 })
 export class AppModule {}

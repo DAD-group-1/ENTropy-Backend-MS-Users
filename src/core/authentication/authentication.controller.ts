@@ -16,7 +16,11 @@ export class AuthenticationController {
   @MessagePattern({ cmd: 'login' })
   async login(@Payload() data: LoginDto): Promise<TokenResponseDto> {
     const user = await this.authService.validateUser(data.email, data.password);
-    return this.authService.login(user);
+    const loginDTO: LoginDto = {
+      email: user.email,
+      password: user.password,
+    };
+    return this.authService.login(loginDTO);
   }
 
   @MessagePattern({ cmd: 'refresh_token' })
