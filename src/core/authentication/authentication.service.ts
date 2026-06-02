@@ -28,12 +28,14 @@ export class AuthenticationService {
   ) {}
 
   async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
-    let payload: { sub: string; email: string };
+    let payload: { sub: string; email: string; data?: { roles: string[] } };
 
     try {
-      payload = this.jwtService.verify<{ sub: string; email: string }>(
-        token.refresh_token,
-      );
+      payload = this.jwtService.verify<{
+        sub: string;
+        email: string;
+        data?: { roles: string[] };
+      }>(token.refresh_token);
     } catch {
       throw new RpcException({
         message: 'Invalid or expired refresh token',
@@ -77,18 +79,24 @@ export class AuthenticationService {
 
       await manager.remove(activeToken);
 
-      const accessToken = this.jwtService.sign({
+      // Re-fetch the user with roles to keep the token up-to-date
+      const userEntity = await manager.findOne(User, {
+        where: { id: Number(payload.sub) },
+        relations: { userRoles: { role: true } },
+      });
+      const roles = (userEntity?.userRoles ?? []).map((ur) => ur.role.name);
+      const newPayload = {
         sub: payload.sub,
         email: payload.email,
+        data: { roles },
+      };
+
+      const accessToken = this.jwtService.sign(newPayload);
+      const refreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: this.configService.getOrThrow(
+          'JWT_REFRESH_TOKEN_EXPIRES_IN',
+        ),
       });
-      const refreshToken = this.jwtService.sign(
-        { sub: payload.sub, email: payload.email },
-        {
-          expiresIn: this.configService.getOrThrow(
-            'JWT_REFRESH_TOKEN_EXPIRES_IN',
-          ),
-        },
-      );
 
       const expiresInMs = ms(
         this.configService.getOrThrow<string>(
@@ -132,8 +140,9 @@ export class AuthenticationService {
   }
 
   async login(user: LoginRequestDto): Promise<TokenResponseDto> {
-    const userEntity = await this.usersRepository.findOneBy({
-      email: user.email,
+    const userEntity = await this.usersRepository.findOne({
+      where: { email: user.email },
+      relations: { userRoles: { role: true } },
     });
     if (!userEntity) {
       throw new RpcException({
@@ -142,7 +151,12 @@ export class AuthenticationService {
       });
     }
 
-    const payload = { sub: userEntity.id, email: userEntity.email };
+    const roles = (userEntity.userRoles ?? []).map((ur) => ur.role.name);
+    const payload = {
+      sub: userEntity.id,
+      email: userEntity.email,
+      data: { roles },
+    };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       expiresIn: this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN'),
