@@ -34,6 +34,18 @@ export class AuthorizationService {
       });
     }
 
+    if (
+      await this.userRoleRepository.existsBy({
+        user_id: user.id,
+        role_id: role.id,
+      })
+    ) {
+      throw new RpcException({
+        message: 'User already has this role',
+        code: HttpStatus.CONFLICT,
+      });
+    }
+
     const userRole = this.userRoleRepository.create({
       user_id: user.id,
       role_id: role.id,
