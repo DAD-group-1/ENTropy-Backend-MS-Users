@@ -3,6 +3,8 @@ import dataSource from './data-source';
 import { User } from '../core/users/entities/user.entity';
 import { Student } from '../core/students/entities/student.entity';
 import { Instructor } from '../core/instructors/entities/instructor.entity';
+import { Role } from '../core/authorization/entities/role.entity';
+import { UserRole } from '../core/authorization/entities/user-role.entity';
 import { StudentStatus, InstructorStatus } from '@dad-group-1/backend-common';
 
 async function seed() {
@@ -12,6 +14,27 @@ async function seed() {
   const userRepository = dataSource.getRepository(User);
   const studentRepository = dataSource.getRepository(Student);
   const instructorRepository = dataSource.getRepository(Instructor);
+  const roleRepository = dataSource.getRepository(Role);
+  const userRoleRepository = dataSource.getRepository(UserRole);
+
+  // Seed Roles
+  const roleDefinitions = [
+    { name: 'Student',    description: 'Enrolled student' },
+    { name: 'Instructor', description: 'Course instructor' },
+    { name: 'Manager',    description: 'Campus manager' },
+    { name: 'Admin',      description: 'System administrator' },
+  ];
+
+  const roles: Record<string, Role> = {};
+  for (const def of roleDefinitions) {
+    let role = await roleRepository.findOne({ where: { name: def.name } });
+    if (!role) {
+      role = roleRepository.create(def);
+      role = await roleRepository.save(role);
+    }
+    roles[def.name] = role;
+  }
+  console.log('Roles seeded:', Object.keys(roles).join(', '));
 
   // Hash password
   const password = await bcrypt.hash('password123', 10);
@@ -45,6 +68,16 @@ async function seed() {
   await studentRepository.save(student);
   console.log(`Student created: ${student.user.email} / password123`);
 
+  // Assign Student role
+  const studentUserRole = userRoleRepository.create({
+    user_id: savedStudentUser.id,
+    role_id: roles['Student'].id,
+    user: savedStudentUser,
+    role: roles['Student'],
+  });
+  await userRoleRepository.save(studentUserRole);
+  console.log(`Role 'Student' assigned to ${savedStudentUser.email}`);
+
   // Seed Instructor
   const instructorUser = new User();
   instructorUser.first_name = 'Jane';
@@ -69,6 +102,16 @@ async function seed() {
 
   await instructorRepository.save(instructor);
   console.log(`Instructor created: ${instructor.user.email} / password123`);
+
+  // Assign Instructor role
+  const instructorUserRole = userRoleRepository.create({
+    user_id: savedInstructorUser.id,
+    role_id: roles['Instructor'].id,
+    user: savedInstructorUser,
+    role: roles['Instructor'],
+  });
+  await userRoleRepository.save(instructorUserRole);
+  console.log(`Role 'Instructor' assigned to ${savedInstructorUser.email}`);
 
   await dataSource.destroy();
 }
