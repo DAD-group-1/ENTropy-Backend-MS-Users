@@ -1,23 +1,16 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthorizationService } from './authorization.service';
-import {
-  CreateRoleDto,
-  DeleteRoleDto,
-  GetUserRoleDto,
-  UpdateRoleDto,
-  UserRoleResponseDto,
-} from '@dad-group-1/backend-common';
+import { CreateRoleDto, DeleteRoleDto, GetUserRoleDto, UpdateRoleDto, UserRoleResponseDto, } from '@dad-group-1/backend-common';
 
 @Controller('authorization')
 export class AuthorizationController {
   constructor(private authorizationService: AuthorizationService) {}
 
   @MessagePattern({ cmd: 'add_role_to_user' })
-  async addRoleToUser(body: {
-    user_id: number;
-    role_id: number;
-  }): Promise<UserRoleResponseDto> {
+  async addRoleToUser(
+    @Payload() body: { user_id: number; role_id: number },
+  ): Promise<UserRoleResponseDto> {
     return await this.authorizationService.addUserRole(
       body.user_id,
       body.role_id,
@@ -25,13 +18,17 @@ export class AuthorizationController {
   }
 
   @MessagePattern({ cmd: 'remove_user_role' })
-  async removeRoleFromUser(body: { user_id: number; role_id: number }) {
+  async removeRoleFromUser(
+    @Payload() body: { user_id: number; role_id: number },
+  ) {
     await this.authorizationService.removeUserRole(body.user_id, body.role_id);
     return null;
   }
 
   @MessagePattern({ cmd: 'assign_roles_to_user' })
-  async assignRolesToUser(payload: { user_id: number; role_ids: number[] }) {
+  async assignRolesToUser(
+    @Payload() payload: { user_id: number; role_ids: number[] },
+  ) {
     return await this.authorizationService.assignRoles(
       payload.user_id,
       payload.role_ids,
@@ -39,7 +36,7 @@ export class AuthorizationController {
   }
 
   @MessagePattern({ cmd: 'get_user_roles' })
-  async getUserRoles(body: GetUserRoleDto) {
+  async getUserRoles(@Payload() body: GetUserRoleDto) {
     return await this.authorizationService.getUserRoles(body.user_id);
   }
 
