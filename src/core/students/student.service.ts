@@ -1,10 +1,9 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from './entities/student.entity';
 import { RpcException } from '@nestjs/microservices';
 import { UserService } from '../users/user.service';
-import { Logger } from '@nestjs/common';
 import {
   CreateStudentDto,
   UpdateStudentDto,
@@ -32,8 +31,10 @@ export class StudentService {
 
     const savedUser = await this.userService.create({ ...createData });
 
-    createData.user_id = savedUser.id;
-    const student = this.studentRepository.create(createData);
+    const student = this.studentRepository.create({
+      ...createData,
+      user_id: savedUser.id,
+    });
 
     try {
       const savedStudent = await this.studentRepository.save(student);

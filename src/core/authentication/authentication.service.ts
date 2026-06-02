@@ -6,7 +6,12 @@ import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { RefreshToken } from './entities/refresh_token.entity';
-import { LogoutDto, LogoutResponseDto, RefreshTokenDto, TokenResponseDto, } from '@dad-group-1/backend-common';
+import {
+  LogoutDto,
+  LogoutResponseDto,
+  RefreshTokenDto,
+  TokenResponseDto,
+} from '@dad-group-1/backend-common';
 import { ConfigService } from '@nestjs/config';
 import ms from 'ms';
 
@@ -22,12 +27,14 @@ export class AuthenticationService {
   ) {}
 
   async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
-    let payload: { sub: string; email: string };
+    let payload: { sub: string; email: string; data?: { roles: string[] } };
 
     try {
-      payload = this.jwtService.verify<{ sub: string; email: string }>(
-        token.refresh_token,
-      );
+      payload = this.jwtService.verify<{
+        sub: string;
+        email: string;
+        data?: { roles: string[] };
+      }>(token.refresh_token);
     } catch {
       throw new RpcException({
         message: 'Invalid or expired refresh token',
@@ -71,18 +78,24 @@ export class AuthenticationService {
 
       await manager.remove(activeToken);
 
-      const accessToken = this.jwtService.sign({
+      // Re-fetch the user with roles to keep the token up-to-date
+      const userEntity = await manager.findOne(User, {
+        where: { id: Number(payload.sub) },
+        relations: { userRoles: { role: true } },
+      });
+      const roles = (userEntity?.userRoles ?? []).map((ur) => ur.role.name);
+      const newPayload = {
         sub: payload.sub,
         email: payload.email,
+        data: { roles },
+      };
+
+      const accessToken = this.jwtService.sign(newPayload);
+      const refreshToken = this.jwtService.sign(newPayload, {
+        expiresIn: this.configService.getOrThrow(
+          'JWT_REFRESH_TOKEN_EXPIRES_IN',
+        ),
       });
-      const refreshToken = this.jwtService.sign(
-        { sub: payload.sub, email: payload.email },
-        {
-          expiresIn: this.configService.getOrThrow(
-            'JWT_REFRESH_TOKEN_EXPIRES_IN',
-          ),
-        },
-      );
 
       const expiresInMs = ms(
         this.configService.getOrThrow<string>(
@@ -99,12 +112,20 @@ export class AuthenticationService {
 
       await manager.save(newTokenEntity);
 
-      return { access_token: accessToken, refresh_token: refreshToken };
+      return {
+        user_id: Number(payload.sub),
+        email: payload.email,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      };
     });
   }
 
-  async validateUser(email: string, pass: string): Promise<Partial<User>> {
-    const user = await this.usersRepository.findOneBy({ email: email });
+  async validateUser(email: string, pass: string): Promise<User> {
+    const user = await this.usersRepository.findOne({
+      where: { email: email },
+      relations: { userRoles: { role: true } },
+    });
 
     if (
       user === null ||
@@ -117,12 +138,24 @@ export class AuthenticationService {
       });
     }
 
-    const { password, ...result } = user;
-    return result;
+    return user;
   }
 
-  async login(user: Partial<User>): Promise<TokenResponseDto> {
-    const payload = { sub: user.id, email: user.email };
+  async login(email: string, password: string): Promise<TokenResponseDto> {
+    const userEntity = await this.validateUser(email, password);
+    if (!userEntity) {
+      throw new RpcException({
+        message: 'Invalid credentials',
+        code: HttpStatus.UNAUTHORIZED,
+      });
+    }
+
+    const roles = (userEntity.userRoles ?? []).map((ur) => ur.role.name);
+    const payload = {
+      sub: userEntity.id,
+      email: userEntity.email,
+      data: { roles },
+    };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
       expiresIn: this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRES_IN'),
@@ -138,7 +171,7 @@ export class AuthenticationService {
 
     try {
       const refreshTokenEntity = this.refreshTokenRepository.create({
-        user_id: user.id,
+        user_id: payload.sub,
         token: refreshToken,
         expires_at: expiresAt,
       });
@@ -151,7 +184,12 @@ export class AuthenticationService {
       });
     }
 
-    return { access_token: accessToken, refresh_token: refreshToken };
+    return {
+      user_id: payload.sub,
+      email: payload.email,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
   }
 
   async logout(refreshToken: LogoutDto): Promise<LogoutResponseDto> {
@@ -174,6 +212,6 @@ export class AuthenticationService {
         code: error.code || HttpStatus.INTERNAL_SERVER_ERROR,
       });
     }
-    return {};
+    return { message: 'Logged out successfully' };
   }
 }

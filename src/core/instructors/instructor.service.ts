@@ -24,8 +24,10 @@ export class InstructorService {
 
     const savedUser = await this.userService.create({ ...createData });
 
-    createData.user_id = savedUser.id;
-    const instructor = this.instructorRepository.create(createData);
+    const instructor = this.instructorRepository.create({
+      ...createData,
+      user_id: savedUser.id,
+    });
     try {
       const savedInstructor = await this.instructorRepository.save(instructor);
 
