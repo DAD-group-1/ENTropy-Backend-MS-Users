@@ -7,7 +7,6 @@ import * as bcrypt from 'bcrypt';
 import { RpcException } from '@nestjs/microservices';
 import { RefreshToken } from './entities/refresh_token.entity';
 import {
-  LoginRequestDto,
   LogoutDto,
   LogoutResponseDto,
   RefreshTokenDto,
@@ -123,7 +122,10 @@ export class AuthenticationService {
   }
 
   async validateUser(email: string, pass: string): Promise<User> {
-    const user = await this.usersRepository.findOneBy({ email: email });
+    const user = await this.usersRepository.findOne({
+      where: { email: email },
+      relations: { userRoles: { role: true } },
+    });
 
     if (
       user === null ||
@@ -139,11 +141,8 @@ export class AuthenticationService {
     return user;
   }
 
-  async login(user: LoginRequestDto): Promise<TokenResponseDto> {
-    const userEntity = await this.usersRepository.findOne({
-      where: { email: user.email },
-      relations: { userRoles: { role: true } },
-    });
+  async login(email: string, password: string): Promise<TokenResponseDto> {
+    const userEntity = await this.validateUser(email, password);
     if (!userEntity) {
       throw new RpcException({
         message: 'Invalid credentials',
