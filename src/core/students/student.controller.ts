@@ -3,6 +3,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { StudentService } from './student.service';
 import {
   CreateStudentDto,
+  PaginationQueryDto,
   UpdateStudentDto,
 } from '@dad-group-1/backend-common';
 
@@ -16,8 +17,8 @@ export class StudentController {
   }
 
   @MessagePattern({ cmd: 'find_all_students' })
-  async findAllStudents() {
-    return this.studentService.findAll();
+  async findAllStudents(@Payload() data: PaginationQueryDto) {
+    return this.studentService.findAll(data);
   }
 
   @MessagePattern({ cmd: 'find_one_student' })

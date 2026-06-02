@@ -6,6 +6,8 @@ import { RpcException } from '@nestjs/microservices';
 import { UserService } from '../users/user.service';
 import {
   CreateStudentDto,
+  PaginationQueryDto,
+  StudentListResponseDto,
   UpdateStudentDto,
 } from '@dad-group-1/backend-common';
 
@@ -60,10 +62,18 @@ export class StudentService {
    * @returns An array of all students
    * @throws RpcException if there is an error retrieving the students
    */
-  findAll(): Promise<Student[]> {
-    return this.studentRepository.find({
+  async findAll(query: PaginationQueryDto): Promise<StudentListResponseDto> {
+    const { page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.studentRepository.findAndCount({
       relations: { user: true },
+      skip,
+      take: limit,
+      order: { user_id: 'DESC' },
     });
+
+    return new StudentListResponseDto(data, total, page, limit);
   }
 
   /**
