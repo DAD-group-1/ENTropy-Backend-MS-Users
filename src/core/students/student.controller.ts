@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { StudentService } from './student.service';
 import {
@@ -9,6 +9,7 @@ import {
 
 @Controller('students')
 export class StudentController {
+  private readonly logger = new Logger(StudentController.name);
   constructor(private readonly studentService: StudentService) {}
 
   @MessagePattern({ cmd: 'create_student' })
