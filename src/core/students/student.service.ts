@@ -86,7 +86,7 @@ export class StudentService {
   async findOne(id: number): Promise<StudentResponseDto> {
     const student = await this.studentRepository.findOne({
       where: { user: { id } },
-      relations: { user: { campus: true }, program: true },
+      relations: { user: { campus: true, role: true }, program: true },
     });
 
     if (!student) {
@@ -113,7 +113,7 @@ export class StudentService {
   ): Promise<StudentResponseDto> {
     const student = await this.studentRepository.findOne({
       where: { user: { id } },
-      relations: { user: { campus: true }, program: true },
+      relations: { user: { campus: true, role: true }, program: true },
     });
     if (!student) {
       this.logger.error(`Student with ID ${id} not found for update`);

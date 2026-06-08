@@ -48,13 +48,17 @@ export class UserService {
       skip,
       take: limit,
       order: { id: 'DESC' },
+      relations: { campus: true, role: true },
     });
 
     return new UserListResponseDto(data, total, page, limit);
   }
 
   async findOneUser(id: number): Promise<UserResponseDto> {
-    const user = await this.userRepository.findOne({ where: { id } });
+    const user = await this.userRepository.findOne({
+      where: { id },
+      relations: { campus: true, role: true },
+    });
     if (!user) {
       this.logger.warn(`User with id ${id} not found`);
       throw new RpcException({

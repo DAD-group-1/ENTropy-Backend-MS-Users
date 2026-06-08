@@ -58,7 +58,11 @@ export class InstructorService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.instructorRepository.findAndCount({
-      relations: { user: true, specialization: true, department: true },
+      relations: {
+        user: { campus: true, role: true },
+        specialization: true,
+        department: true,
+      },
       skip,
       take: limit,
       order: { user_id: 'DESC' },
@@ -70,7 +74,11 @@ export class InstructorService {
   async findOne(id: number): Promise<InstructorResponseDto> {
     const instructor = await this.instructorRepository.findOne({
       where: { user: { id } },
-      relations: { user: true, specialization: true, department: true },
+      relations: {
+        user: { campus: true, role: true },
+        specialization: true,
+        department: true,
+      },
     });
 
     if (!instructor) {
