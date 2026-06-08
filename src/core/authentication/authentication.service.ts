@@ -27,13 +27,13 @@ export class AuthenticationService {
   ) {}
 
   async refreshTokens(token: RefreshTokenDto): Promise<TokenResponseDto> {
-    let payload: { sub: string; email: string; data?: { roles: string[] } };
+    let payload: { sub: string; email: string; data?: { role: string } };
 
     try {
       payload = this.jwtService.verify<{
         sub: string;
         email: string;
-        data?: { roles: string[] };
+        data?: { role: string };
       }>(token.refresh_token);
     } catch {
       throw new RpcException({
