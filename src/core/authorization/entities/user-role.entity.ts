@@ -3,6 +3,7 @@ import { InternalUserRole } from '@dad-group-1/backend-common';
 import { User } from '../../users/entities/user.entity';
 import { Role } from './role.entity';
 
+/*
 @Entity()
 export class UserRole extends InternalUserRole {
   @ManyToOne(() => User, (user) => user.userRoles)
@@ -13,3 +14,4 @@ export class UserRole extends InternalUserRole {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 }
+*/

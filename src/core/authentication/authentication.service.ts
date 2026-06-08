@@ -81,13 +81,20 @@ export class AuthenticationService {
       // Re-fetch the user with roles to keep the token up-to-date
       const userEntity = await manager.findOne(User, {
         where: { id: Number(payload.sub) },
-        relations: { userRoles: { role: true } },
+        relations: { role: true },
       });
-      const roles = (userEntity?.userRoles ?? []).map((ur) => ur.role.name);
+
+      if (!userEntity) {
+        throw new RpcException({
+          message: 'User not found',
+          code: HttpStatus.UNAUTHORIZED,
+        });
+      }
+
       const newPayload = {
         sub: payload.sub,
         email: payload.email,
-        data: { roles },
+        data: { role: userEntity.role.name },
       };
 
       const accessToken = this.jwtService.sign(newPayload);
@@ -124,7 +131,7 @@ export class AuthenticationService {
   async validateUser(email: string, pass: string): Promise<User> {
     const user = await this.usersRepository.findOne({
       where: { email: email },
-      relations: { userRoles: { role: true } },
+      relations: { role: true },
     });
 
     if (
@@ -150,11 +157,10 @@ export class AuthenticationService {
       });
     }
 
-    const roles = (userEntity.userRoles ?? []).map((ur) => ur.role.name);
     const payload = {
       sub: userEntity.id,
       email: userEntity.email,
-      data: { roles },
+      data: { role: userEntity.role.name },
     };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, {
