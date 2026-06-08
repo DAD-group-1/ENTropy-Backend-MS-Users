@@ -4,6 +4,9 @@ import { Instructor } from './entities/instructor.entity';
 import { Repository } from 'typeorm';
 import {
   CreateInstructorDto,
+  InstructorListResponseDto,
+  PaginationQueryDto,
+  StudentListResponseDto,
   UpdateInstructorDto,
 } from '@dad-group-1/backend-common';
 import { UserService } from '../users/user.service';
@@ -48,10 +51,18 @@ export class InstructorService {
     }
   }
 
-  findAll(): Promise<Instructor[]> {
-    return this.instructorRepository.find({
+  async findAll(query: PaginationQueryDto): Promise<InstructorListResponseDto> {
+    const { page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.instructorRepository.findAndCount({
       relations: { user: true },
+      skip,
+      take: limit,
+      order: { user_id: 'DESC' },
     });
+
+    return new InstructorListResponseDto(data, total, page, limit);
   }
 
   async findOne(id: number): Promise<Instructor | null> {

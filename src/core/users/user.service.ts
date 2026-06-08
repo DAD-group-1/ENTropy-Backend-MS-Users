@@ -2,7 +2,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { CreateUserDto, UpdateUserDto } from '@dad-group-1/backend-common';
+import {
+  CreateUserDto,
+  PaginationQueryDto,
+  UpdateUserDto,
+  UserListResponseDto,
+  UserResponseDto,
+} from '@dad-group-1/backend-common';
 import { RpcException } from '@nestjs/microservices';
 import * as bcrypt from 'bcrypt';
 
@@ -32,6 +38,31 @@ export class UserService {
         code: HttpStatus.BAD_REQUEST,
       });
     }
+  }
+
+  async findAll(query: PaginationQueryDto): Promise<UserListResponseDto> {
+    const { page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await this.userRepository.findAndCount({
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
+
+    return new UserListResponseDto(data, total, page, limit);
+  }
+
+  async findOneUser(id: number): Promise<UserResponseDto> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      this.logger.warn(`User with id ${id} not found`);
+      throw new RpcException({
+        message: `User with id ${id} not found`,
+        code: HttpStatus.NOT_FOUND,
+      });
+    }
+    return user;
   }
 
   async findOne(id: number): Promise<User | null> {

@@ -8,6 +8,7 @@ import {
   CreateStudentDto,
   PaginationQueryDto,
   StudentListResponseDto,
+  StudentResponseDto,
   UpdateStudentDto,
 } from '@dad-group-1/backend-common';
 
@@ -28,7 +29,7 @@ export class StudentService {
    * @returns The created student
    * @throws RpcException if there is an error creating the user or student
    */
-  async create(createData: CreateStudentDto): Promise<Student> {
+  async create(createData: CreateStudentDto): Promise<StudentResponseDto> {
     await this.userService.assertDoesntExist({ email: createData.email });
 
     const savedUser = await this.userService.create({ ...createData });
@@ -67,7 +68,7 @@ export class StudentService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.studentRepository.findAndCount({
-      relations: { user: true },
+      relations: { user: { campus: true }, program: true },
       skip,
       take: limit,
       order: { user_id: 'DESC' },
@@ -82,10 +83,10 @@ export class StudentService {
    * @returns The student with the given ID, or null if not found
    * @throws RpcException with a 404 status code if the student is not found
    */
-  async findOne(id: number): Promise<Student | null> {
+  async findOne(id: number): Promise<StudentResponseDto> {
     const student = await this.studentRepository.findOne({
       where: { user: { id } },
-      relations: { user: true },
+      relations: { user: { campus: true }, program: true },
     });
 
     if (!student) {
@@ -109,8 +110,11 @@ export class StudentService {
   async update(
     id: number,
     updateData: UpdateStudentDto,
-  ): Promise<Student | null> {
-    const student = await this.findOne(id);
+  ): Promise<StudentResponseDto> {
+    const student = await this.studentRepository.findOne({
+      where: { user: { id } },
+      relations: { user: { campus: true }, program: true },
+    });
     if (!student) {
       this.logger.error(`Student with ID ${id} not found for update`);
       throw new RpcException({
@@ -134,8 +138,11 @@ export class StudentService {
     return updatedStudent;
   }
 
-  async remove(id: number): Promise<Student | null> {
-    const student = await this.findOne(id);
+  async remove(id: number): Promise<StudentResponseDto> {
+    const student = await this.studentRepository.findOne({
+      where: { user: { id } },
+      relations: { user: true },
+    });
     if (!student) {
       this.logger.error(`Student with ID ${id} not found for deletion`);
       throw new RpcException({

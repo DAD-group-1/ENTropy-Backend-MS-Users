@@ -5,6 +5,7 @@ import { StudentModule } from './core/students/student.module';
 import { InstructorModule } from './core/instructors/instructor.module';
 import { AuthenticationModule } from './core/authentication/authentication.module';
 import { AuthorizationModule } from './core/authorization/authorization.module';
+import { UserModule } from './core/users/user.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { AuthorizationModule } from './core/authorization/authorization.module';
     DatabaseModule,
     StudentModule,
     InstructorModule,
+    UserModule,
     AuthenticationModule,
     AuthorizationModule,
   ],
