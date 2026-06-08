@@ -3,6 +3,7 @@ import { InstructorService } from './instructor.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import {
   CreateInstructorDto,
+  PaginationQueryDto,
   UpdateInstructorDto,
 } from '@dad-group-1/backend-common';
 
@@ -16,8 +17,8 @@ export class InstructorController {
   }
 
   @MessagePattern({ cmd: 'find_all_instructors' })
-  findAll() {
-    return this.instructorService.findAll();
+  findAll(@Payload() query: PaginationQueryDto) {
+    return this.instructorService.findAll(query);
   }
 
   @MessagePattern({ cmd: 'find_one_instructor' })

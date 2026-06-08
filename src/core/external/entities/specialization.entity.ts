@@ -1,6 +1,6 @@
 import { Entity, OneToMany } from 'typeorm';
 import { InternalSpecialization } from '@dad-group-1/backend-common';
-import { Instructor } from './instructor.entity';
+import { Instructor } from '../../instructors/entities/instructor.entity';
 
 @Entity()
 export class Specialization extends InternalSpecialization {

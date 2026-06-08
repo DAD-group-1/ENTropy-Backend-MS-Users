@@ -6,7 +6,6 @@ import {
   CreateInstructorDto,
   InstructorListResponseDto,
   PaginationQueryDto,
-  StudentListResponseDto,
   UpdateInstructorDto,
 } from '@dad-group-1/backend-common';
 import { UserService } from '../users/user.service';
@@ -56,7 +55,7 @@ export class InstructorService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.instructorRepository.findAndCount({
-      relations: { user: true },
+      relations: { user: true, specialization: true, department: true },
       skip,
       take: limit,
       order: { user_id: 'DESC' },
@@ -68,7 +67,7 @@ export class InstructorService {
   async findOne(id: number): Promise<Instructor | null> {
     const instructor = await this.instructorRepository.findOne({
       where: { user: { id } },
-      relations: { user: true },
+      relations: { user: true, specialization: true, department: true },
     });
 
     if (!instructor) {
