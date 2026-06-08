@@ -2,9 +2,9 @@ import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { StudentService } from './student.service';
 import {
-  CreateStudentDto,
+  CreateStudentRequestDto,
   PaginationQueryDto,
-  UpdateStudentDto,
+  UpdateStudentRequestDto,
 } from '@dad-group-1/backend-common';
 
 @Controller('students')
@@ -13,7 +13,7 @@ export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   @MessagePattern({ cmd: 'create_student' })
-  async createStudent(@Payload() data: CreateStudentDto) {
+  async createStudent(@Payload() data: CreateStudentRequestDto) {
     return this.studentService.create(data);
   }
 
@@ -29,7 +29,7 @@ export class StudentController {
 
   @MessagePattern({ cmd: 'update_student' })
   async updateStudent(
-    @Payload() payload: { id: number; updateData: UpdateStudentDto },
+    @Payload() payload: { id: number; updateData: UpdateStudentRequestDto },
   ) {
     return this.studentService.update(payload.id, payload.updateData);
   }

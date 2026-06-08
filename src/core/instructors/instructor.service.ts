@@ -3,8 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Instructor } from './entities/instructor.entity';
 import { Repository } from 'typeorm';
 import {
-  CreateInstructorDto,
+  CreateInstructorRequestDto,
   InstructorListResponseDto,
+  InstructorResponseDto,
   PaginationQueryDto,
   UpdateInstructorDto,
 } from '@dad-group-1/backend-common';
@@ -21,7 +22,9 @@ export class InstructorService {
     private readonly userService: UserService,
   ) {}
 
-  async create(createData: CreateInstructorDto): Promise<Instructor> {
+  async create(
+    createData: CreateInstructorRequestDto,
+  ): Promise<InstructorResponseDto> {
     await this.userService.assertDoesntExist({ email: createData.email });
 
     const savedUser = await this.userService.create({ ...createData });
@@ -64,7 +67,7 @@ export class InstructorService {
     return new InstructorListResponseDto(data, total, page, limit);
   }
 
-  async findOne(id: number): Promise<Instructor | null> {
+  async findOne(id: number): Promise<InstructorResponseDto> {
     const instructor = await this.instructorRepository.findOne({
       where: { user: { id } },
       relations: { user: true, specialization: true, department: true },
@@ -83,8 +86,10 @@ export class InstructorService {
   async update(
     id: number,
     updateData: UpdateInstructorDto,
-  ): Promise<Instructor | null> {
-    const instructor = await this.findOne(id);
+  ): Promise<InstructorResponseDto> {
+    const instructor = await this.instructorRepository.findOne({
+      where: { user: { id } },
+    });
     if (!instructor) {
       this.logger.error(`Instructor with ID ${id} not found for update`);
       throw new RpcException({
@@ -105,8 +110,10 @@ export class InstructorService {
     return updatedInstructor;
   }
 
-  async remove(id: number): Promise<Instructor | null> {
-    const instructor = await this.findOne(id);
+  async remove(id: number): Promise<InstructorResponseDto> {
+    const instructor = await this.instructorRepository.findOne({
+      where: { user: { id } },
+    });
     if (!instructor) {
       this.logger.error(`Instructor with ID ${id} not found for deletion`);
       throw new RpcException({
