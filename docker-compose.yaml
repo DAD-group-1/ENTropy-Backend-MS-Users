@@ -1,21 +1,4 @@
 services:
-  postgresql-db:
-    image: postgres:18
-    container_name: entropy_users_postgresql
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      POSTGRES_DB: entropy_users_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - '5433:5432'
-    volumes:
-      - postgres_data:/var/lib/postgresql/18/docker
-
   entropy-backend-ms-users:
     build:
       context: .
@@ -27,6 +10,3 @@ services:
       - '3001:3001'
     volumes:
       - .:/app
-
-volumes:
-  postgres_data:
