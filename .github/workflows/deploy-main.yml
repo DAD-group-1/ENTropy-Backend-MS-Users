@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.ENO_SERVER_IP }}
           username: ${{ secrets.ENO_SERVER_USER }}
           key: ${{ secrets.ENO_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.ENO_SERVER_PORT }}
+          port: 2222
           script: |
             cd docker_volumes/entropy/ENTropy-Backend-MS-Users
             git pull
