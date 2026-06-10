@@ -10,18 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug secrets
-        run: |
-          echo "Host is set: ${{ secrets.ENO_SERVER_IP != '' }}"
-          echo "User is set: ${{ secrets.ENO_SERVER_USER != '' }}"
-          echo "Key is set: ${{ secrets.ENO_SSH_PRIVATE_KEY != '' }}"
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.ENO_SERVER_IP }}
           username: ${{ secrets.ENO_SERVER_USER }}
           key: ${{ secrets.ENO_SSH_PRIVATE_KEY }}
-          port: 2222
+          port: ${{ secrets.ENO_SERVER_PORT }}
           script: |
             cd docker_volumes/entropy/ENTropy-Backend-MS-Users
             git pull
