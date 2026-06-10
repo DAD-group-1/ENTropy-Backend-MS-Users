@@ -4,9 +4,5 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: entropy_backend_ms_users
-    depends_on:
-      - postgresql-db
     ports:
       - '3001:3001'
-    volumes:
-      - .:/app
