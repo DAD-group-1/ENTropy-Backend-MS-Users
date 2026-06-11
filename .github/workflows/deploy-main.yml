@@ -1,0 +1,23 @@
+name: Deploy MS Users
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.ENO_SERVER_IP }}
+          username: ${{ secrets.ENO_SERVER_USER }}
+          key: ${{ secrets.ENO_SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            cd docker_volumes/entropy/ENTropy-Backend-MS-Users
+            git pull
+            docker compose down -v && docker compose build --no-cache && docker compose up --force-recreate
